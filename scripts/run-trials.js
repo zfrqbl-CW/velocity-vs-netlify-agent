@@ -41,9 +41,9 @@ async function main() {
     results.push(result);
     console.log(`  -> ${result.ok ? 'success' : 'failed'} in ${result.durationMs}ms`);
 
-    // Space runs out to smooth over cold start variance and stay well under
-    // Groq's free-tier rate limit.
-    const pause = 5000 + Math.random() * 10000;
+    // Space runs out to smooth over cold start variance and keep any two
+    // runs' calls from stacking inside the same 60-second Groq rate window.
+    const pause = 15000 + Math.random() * 10000;
     await sleep(pause);
   }
 
