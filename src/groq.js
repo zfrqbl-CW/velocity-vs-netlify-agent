@@ -29,9 +29,9 @@ async function summarize(topic, extract) {
   ]);
 }
 
-async function compare(articles) {
-  const prompt = Object.entries(articles)
-    .map(([key, val]) => `${key}:\nMain summary: ${val.mainSummary}\nSupporting summary: ${val.supportSummary}`)
+async function compare(summaries) {
+  const prompt = Object.entries(summaries)
+    .map(([key, list]) => `${key}:\n${list.map((s, i) => `Source ${i + 1}: ${s}`).join('\n')}`)
     .join('\n\n');
   return callGroq([
     {
@@ -54,4 +54,29 @@ async function verdict(comparison) {
   ]);
 }
 
-module.exports = { summarize, compare, verdict };
+async function counterargument(comparison, initialVerdict) {
+  return callGroq([
+    {
+      role: 'system',
+      content:
+        'Make the strongest possible case against the verdict just given, using only the comparison provided. Be specific and concise.'
+    },
+    { role: 'user', content: `Comparison:\n${comparison}\n\nVerdict to challenge:\n${initialVerdict}` }
+  ]);
+}
+
+async function finalVerdict(comparison, initialVerdict, counterargumentText) {
+  return callGroq([
+    {
+      role: 'system',
+      content:
+        'Weigh the original verdict against the counterargument and state a final, revised verdict on which subject had the greater long-term impact on human civilization. Note explicitly whether the counterargument changed the conclusion.'
+    },
+    {
+      role: 'user',
+      content: `Comparison:\n${comparison}\n\nInitial verdict:\n${initialVerdict}\n\nCounterargument:\n${counterargumentText}`
+    }
+  ]);
+}
+
+module.exports = { summarize, compare, verdict, counterargument, finalVerdict };
