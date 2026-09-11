@@ -10,6 +10,13 @@ app.get('/health', (req, res) => {
   res.json({ ok: true });
 });
 
+app.get('/', (req, res) => {
+  res.json({
+    status: 'running',
+    message: 'This is the velocity-vs-netlify-agent demo app. See /health for a status check, POST /run to trigger the pipeline, and /results for logged run data.'
+  });
+});
+
 app.post('/run', async (req, res) => {
   const runId = req.body.runId || randomUUID();
   const platform = req.body.platform || 'unknown';
