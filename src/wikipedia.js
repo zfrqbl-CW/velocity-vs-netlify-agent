@@ -11,15 +11,15 @@ async function resolveTitle(query) {
   return hit.title;
 }
 
-async function getExtract(title) {
-  const url = `${API}?action=query&prop=extracts&exintro=1&explaintext=1&redirects=1&format=json&titles=${encodeURIComponent(title)}`;
+async function getExtract(title, maxChars = 6000) {
+  const url = `${API}?action=query&prop=extracts&explaintext=1&redirects=1&format=json&titles=${encodeURIComponent(title)}`;
   const res = await fetch(url, { headers: { 'User-Agent': USER_AGENT } });
   if (!res.ok) throw new Error(`Wikipedia extract failed (${res.status}) for "${title}"`);
   const data = await res.json();
   const pages = (data.query && data.query.pages) || {};
   const page = Object.values(pages)[0];
   if (!page || !page.extract) throw new Error(`No extract found for "${title}"`);
-  return page.extract;
+  return page.extract.slice(0, maxChars);
 }
 
 module.exports = { resolveTitle, getExtract };
