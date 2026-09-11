@@ -1,7 +1,7 @@
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const MODEL = 'openai/gpt-oss-120b';
 
-async function callGroq(messages) {
+async function callGroq(messages, attempt = 0) {
   const res = await fetch(GROQ_URL, {
     method: 'POST',
     headers: {
@@ -10,6 +10,16 @@ async function callGroq(messages) {
     },
     body: JSON.stringify({ model: MODEL, messages, temperature: 0.3 })
   });
+
+  if (res.status === 429 && attempt < 3) {
+    const retryAfterHeader = res.headers.get('retry-after');
+    const waitSeconds = retryAfterHeader ? parseFloat(retryAfterHeader) : 2;
+    // Small buffer on top of Groq's own suggested wait, since the window
+    // boundary is a moving target.
+    await new Promise((resolve) => setTimeout(resolve, (waitSeconds + 0.5) * 1000));
+    return callGroq(messages, attempt + 1);
+  }
+
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Groq error ${res.status}: ${text}`);
