@@ -29,15 +29,14 @@ async function summarize(topic, extract) {
   ]);
 }
 
-async function compare(summaries) {
+async function compareDimension(dimension, summaries) {
   const prompt = Object.entries(summaries)
     .map(([key, list]) => `${key}:\n${list.map((s, i) => `Source ${i + 1}: ${s}`).join('\n')}`)
     .join('\n\n');
   return callGroq([
     {
       role: 'system',
-      content:
-        'Compare the two subjects across reach, speed of adoption, societal effect, and durability, using only the summaries provided. Be specific and concise.'
+      content: `Compare the two subjects specifically on ${dimension}, using only the summaries provided. Be specific and concise.`
     },
     { role: 'user', content: prompt }
   ]);
@@ -54,29 +53,29 @@ async function verdict(comparison) {
   ]);
 }
 
-async function counterargument(comparison, initialVerdict) {
+async function counterargument(comparison, priorVerdict) {
   return callGroq([
     {
       role: 'system',
       content:
         'Make the strongest possible case against the verdict just given, using only the comparison provided. Be specific and concise.'
     },
-    { role: 'user', content: `Comparison:\n${comparison}\n\nVerdict to challenge:\n${initialVerdict}` }
+    { role: 'user', content: `Comparison:\n${comparison}\n\nVerdict to challenge:\n${priorVerdict}` }
   ]);
 }
 
-async function finalVerdict(comparison, initialVerdict, counterargumentText) {
+async function finalVerdict(comparison, priorVerdict, counterargumentText) {
   return callGroq([
     {
       role: 'system',
       content:
-        'Weigh the original verdict against the counterargument and state a final, revised verdict on which subject had the greater long-term impact on human civilization. Note explicitly whether the counterargument changed the conclusion.'
+        'Weigh the prior verdict against the counterargument and state a revised verdict on which subject had the greater long-term impact on human civilization. Note explicitly whether the counterargument changed the conclusion.'
     },
     {
       role: 'user',
-      content: `Comparison:\n${comparison}\n\nInitial verdict:\n${initialVerdict}\n\nCounterargument:\n${counterargumentText}`
+      content: `Comparison:\n${comparison}\n\nPrior verdict:\n${priorVerdict}\n\nCounterargument:\n${counterargumentText}`
     }
   ]);
 }
 
-module.exports = { summarize, compare, verdict, counterargument, finalVerdict };
+module.exports = { summarize, compareDimension, verdict, counterargument, finalVerdict };
