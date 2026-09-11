@@ -6,15 +6,25 @@ const { runPipeline } = require('./pipeline');
 const app = express();
 app.use(express.json());
 
-app.get('/health', (req, res) => {
-  res.json({ ok: true });
-});
-
 app.get('/', (req, res) => {
   res.json({
     status: 'running',
     message: 'This is the velocity-vs-netlify-agent demo app. See /health for a status check, POST /run to trigger the pipeline, and /results for logged run data.'
   });
+});
+
+// Zero-cost probe: waits the requested number of seconds, no Groq or
+// Wikipedia calls involved. Use this to find a platform's real timeout
+// wall empirically before trusting any documentation number.
+app.get('/timeout-test', async (req, res) => {
+  const seconds = parseFloat(req.query.seconds) || 5;
+  const start = Date.now();
+  await new Promise((resolve) => setTimeout(resolve, seconds * 1000));
+  res.json({ requestedSeconds: seconds, actualMs: Date.now() - start });
+});
+
+app.get('/health', (req, res) => {
+  res.json({ ok: true });
 });
 
 app.post('/run', async (req, res) => {
