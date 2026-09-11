@@ -6,13 +6,20 @@ const TOPICS = [
   {
     key: 'printing_press',
     title: 'Printing press',
-    supportQuery: 'Printing press impact on society'
+    supportQueries: ['Printing press impact on society', 'History of printing']
   },
   {
     key: 'internet',
     title: 'Internet',
-    supportQuery: 'Internet impact on society'
+    supportQueries: ['Internet impact on society', 'History of the Internet']
   }
+];
+
+const DIMENSIONS = [
+  { key: 'reach', label: 'reach' },
+  { key: 'speed_of_adoption', label: 'speed of adoption' },
+  { key: 'societal_effect', label: 'societal effect' },
+  { key: 'durability', label: 'durability' }
 ];
 
 async function summarizeSource(log, label, topicTitle, title) {
@@ -39,31 +46,54 @@ async function runPipeline(runId, platform) {
     await log(`resolve:${topic.key}_main`, 'done');
     topicSummaries.push(await summarizeSource(log, `${topic.key}_main`, topic.title, mainTitle));
 
-    await log(`resolve:${topic.key}_support`, 'start');
-    const supportTitle = await wiki.resolveTitle(topic.supportQuery);
-    await log(`resolve:${topic.key}_support`, 'done');
-    topicSummaries.push(await summarizeSource(log, `${topic.key}_support`, topic.title, supportTitle));
+    for (let i = 0; i < topic.supportQueries.length; i++) {
+      const label = `${topic.key}_support${i + 1}`;
+      await log(`resolve:${label}`, 'start');
+      const title = await wiki.resolveTitle(topic.supportQueries[i]);
+      await log(`resolve:${label}`, 'done');
+      topicSummaries.push(await summarizeSource(log, label, topic.title, title));
+    }
 
     summaries[topic.key] = topicSummaries;
   }
 
-  await log('compare', 'start');
-  const comparison = await groq.compare(summaries);
-  await log('compare', 'done');
+  const dimensionResults = [];
+  for (const dimension of DIMENSIONS) {
+    await log(`compare:${dimension.key}`, 'start');
+    const result = await groq.compareDimension(dimension.label, summaries);
+    await log(`compare:${dimension.key}`, 'done');
+    dimensionResults.push(`${dimension.label}:\n${result}`);
+  }
+  const comparison = dimensionResults.join('\n\n');
 
   await log('initial_verdict', 'start');
   const initialVerdict = await groq.verdict(comparison);
   await log('initial_verdict', 'done');
 
-  await log('counterargument', 'start');
-  const counterargument = await groq.counterargument(comparison, initialVerdict);
-  await log('counterargument', 'done');
+  await log('counterargument_1', 'start');
+  const counterargument1 = await groq.counterargument(comparison, initialVerdict);
+  await log('counterargument_1', 'done');
 
-  await log('final_verdict', 'start');
-  const finalVerdict = await groq.finalVerdict(comparison, initialVerdict, counterargument);
-  await log('final_verdict', 'done');
+  await log('final_verdict_1', 'start');
+  const finalVerdict1 = await groq.finalVerdict(comparison, initialVerdict, counterargument1);
+  await log('final_verdict_1', 'done');
 
-  return { comparison, initialVerdict, counterargument, finalVerdict };
+  await log('counterargument_2', 'start');
+  const counterargument2 = await groq.counterargument(comparison, finalVerdict1);
+  await log('counterargument_2', 'done');
+
+  await log('final_verdict_2', 'start');
+  const finalVerdict2 = await groq.finalVerdict(comparison, finalVerdict1, counterargument2);
+  await log('final_verdict_2', 'done');
+
+  return {
+    comparison,
+    initialVerdict,
+    counterargument1,
+    finalVerdict1,
+    counterargument2,
+    finalVerdict2
+  };
 }
 
 module.exports = { runPipeline, TOPICS };
