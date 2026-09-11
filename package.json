@@ -1,0 +1,18 @@
+{
+  "name": "velocity-vs-netlify-agent",
+  "version": "1.0.0",
+  "description": "One Express app, deployed unchanged to Netlify Functions and Cloudways Velocity, testing a multi-step Wikipedia research pipeline against serverless timeouts.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "trial": "node scripts/run-trials.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "serverless-http": "^3.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
